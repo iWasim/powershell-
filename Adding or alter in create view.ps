@@ -1,0 +1,38 @@
+
+# Base path containing the original files
+$baseDirectoryPath = "C:\path\to\your\original\files"
+
+# Base output directory where modified files will be stored
+$outputBaseDirectory = "C:\path\to\your\modified\files"
+if (!(Test-Path -Path $outputBaseDirectory)) {
+    New-Item -ItemType Directory -Path $outputBaseDirectory
+}
+
+# Loop through each file in the base directory
+Get-ChildItem -Path $baseDirectoryPath -Filter *.sql | ForEach-Object {
+    $filePath = $_.FullName
+    $fileName = $_.Name
+    
+    # Extract schema name from the filename (assuming format: "schemaname.viewname.sql")
+    $schemaName = $fileName.Split('.')[0]
+    
+    # Define schema-specific output directory
+    $schemaDirectory = Join-Path -Path $outputBaseDirectory -ChildPath $schemaName
+    if (!(Test-Path -Path $schemaDirectory)) {
+        New-Item -ItemType Directory -Path $schemaDirectory
+    }
+    
+    # Read file content
+    $content = Get-Content -Path $filePath -Raw
+    
+    # Find the first instance of "CREATE" and replace with "CREATE OR ALTER"
+    $updatedContent = $content -replace '(?i)\bCREATE\b', 'CREATE OR ALTER', 1
+
+    # Define the output file path in the schema directory
+    $outputFilePath = Join-Path -Path $schemaDirectory -ChildPath $fileName
+
+    # Write the updated content to the schema-specific directory
+    Set-Content -Path $outputFilePath -Value $updatedContent
+
+    Write-Output "Updated file saved to: $outputFilePath"
+}
