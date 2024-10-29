@@ -16,7 +16,12 @@ Get-ChildItem -Path $directoryPath -Filter *.sql | ForEach-Object {
     $content = Get-Content -Path $filePath -Raw
     
     # Find the first instance of "CREATE" and replace with "CREATE OR ALTER"
-    $updatedContent = $content -replace '(?i)\bCREATE\b', 'CREATE OR ALTER', 1
+    if ($content -match '(?i)\bCREATE\b') {
+        # Replace only the first occurrence of "CREATE"
+        $updatedContent = $content -replace '(?i)\bCREATE\b', 'CREATE OR ALTER', 1
+    } else {
+        $updatedContent = $content
+    }
 
     # Define the output path for the modified file
     $outputFilePath = Join-Path -Path $outputDirectoryPath -ChildPath $fileName
