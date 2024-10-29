@@ -50,3 +50,59 @@ foreach ($file in $files) {
 }
 
 Write-Host "Replacement completed and files saved to their respective schema folders."
+
+
+# append- removing View from schema.viewname.view.sql
+
+# Specify the directory containing your original view definition files
+$inputDirectoryPath = "C:\Path\To\Your\InputFiles"
+
+# Specify the base directory where the modified files should be saved
+$baseOutputDirectoryPath = "C:\Path\To\Your\OutputFiles"
+
+# Create the base output directory if it doesn't exist
+if (-not (Test-Path -Path $baseOutputDirectoryPath)) {
+    New-Item -ItemType Directory -Path $baseOutputDirectoryPath
+}
+
+# Get all .sql files in the specified input directory
+$files = Get-ChildItem -Path $inputDirectoryPath -Filter "*.sql"
+
+foreach ($file in $files) {
+    # Read the content of the file
+    $content = Get-Content -Path $file.FullName
+
+    # Join lines back into a single string for processing
+    $updatedContent = $content -join "`n"
+
+    # Find the first occurrence of "create" (case-insensitive) and get its index
+    $firstCreateIndex = $updatedContent.IndexOf("create", [System.StringComparison]::OrdinalIgnoreCase)
+
+    if ($firstCreateIndex -ne -1) {
+        # Replace only the first occurrence
+        $updatedContent = $updatedContent.Substring(0, $firstCreateIndex) + 
+                         "CREATE OR ALTER" + 
+                         $updatedContent.Substring($firstCreateIndex + "create".Length)
+    }
+
+    # Extract schema name from the filename
+    $schemaName = $file.Name.Split('.')[0]  # Assuming schema is the first part of the filename
+
+    # Create output directory for the schema if it doesn't exist
+    $schemaOutputDirectoryPath = Join-Path -Path $baseOutputDirectoryPath -ChildPath $schemaName
+    if (-not (Test-Path -Path $schemaOutputDirectoryPath)) {
+        New-Item -ItemType Directory -Path $schemaOutputDirectoryPath
+    }
+
+    # Remove "View" from the filename if it exists (case-insensitive)
+    $cleanedFileName = $file.Name -replace "\.?(?i)view\.sql$", ".sql"  # Remove 'View' before '.sql'
+
+    # Define the output file path
+    $outputFilePath = Join-Path -Path $schemaOutputDirectoryPath -ChildPath $cleanedFileName
+
+    # Write the updated content to the new file in the schema-specific output directory
+    Set-Content -Path $outputFilePath -Value $updatedContent
+}
+
+Write-Host "Replacement completed and files saved to their respective schema folders."
+
