@@ -1,3 +1,4 @@
+
 # Specify the directory containing your original view definition files
 $inputDirectoryPath = "C:\Path\To\Your\InputFiles"
 
@@ -38,8 +39,11 @@ foreach ($file in $files) {
         New-Item -ItemType Directory -Path $schemaOutputDirectoryPath
     }
 
+    # Remove "View" from the filename if it exists (case-insensitive)
+    $cleanedFileName = $file.Name -replace "\.?(?i)view\.sql$", ".sql"  # Remove 'View' before '.sql'
+
     # Define the output file path
-    $outputFilePath = Join-Path -Path $schemaOutputDirectoryPath -ChildPath $file.Name
+    $outputFilePath = Join-Path -Path $schemaOutputDirectoryPath -ChildPath $cleanedFileName
 
     # Write the updated content to the new file in the schema-specific output directory
     Set-Content -Path $outputFilePath -Value $updatedContent
