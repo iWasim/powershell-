@@ -1,0 +1,28 @@
+# Directory containing the original files
+$directoryPath = "C:\path\to\your\original\files"
+
+# Directory to save the modified files
+$outputDirectoryPath = "C:\path\to\your\modified\files"
+if (!(Test-Path -Path $outputDirectoryPath)) {
+    New-Item -ItemType Directory -Path $outputDirectoryPath
+}
+
+# Loop through each file in the directory
+Get-ChildItem -Path $directoryPath -Filter *.sql | ForEach-Object {
+    $filePath = $_.FullName
+    $fileName = $_.Name
+    
+    # Read file content
+    $content = Get-Content -Path $filePath -Raw
+    
+    # Find the first instance of "CREATE" and replace with "CREATE OR ALTER"
+    $updatedContent = $content -replace '(?i)\bCREATE\b', 'CREATE OR ALTER', 1
+
+    # Define the output path for the modified file
+    $outputFilePath = Join-Path -Path $outputDirectoryPath -ChildPath $fileName
+
+    # Write the updated content to the new location
+    Set-Content -Path $outputFilePath -Value $updatedContent
+
+    Write-Output "Updated file saved to: $outputFilePath"
+}
