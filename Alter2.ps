@@ -1,33 +1,37 @@
-# Directory containing the original files
-$directoryPath = "C:\path\to\your\original\files"
+# Specify the directory containing your original view definition files
+$inputDirectoryPath = "C:\Path\To\Your\InputFiles"
 
-# Directory to save the modified files
-$outputDirectoryPath = "C:\path\to\your\modified\files"
-if (!(Test-Path -Path $outputDirectoryPath)) {
+# Specify the directory where the modified files should be saved
+$outputDirectoryPath = "C:\Path\To\Your\OutputFiles"
+
+# Create the output directory if it doesn't exist
+if (-not (Test-Path -Path $outputDirectoryPath)) {
     New-Item -ItemType Directory -Path $outputDirectoryPath
 }
 
-# Loop through each file in the directory
-Get-ChildItem -Path $directoryPath -Filter *.sql | ForEach-Object {
-    $filePath = $_.FullName
-    $fileName = $_.Name
-    
-    # Read file content
-    $content = Get-Content -Path $filePath -Raw
-    
-    # Find the first instance of "CREATE" and replace with "CREATE OR ALTER"
-    if ($content -match '(?i)\bCREATE\b') {
-        # Replace only the first occurrence of "CREATE"
-        $updatedContent = $content -replace '(?i)\bCREATE\b', 'CREATE OR ALTER', 1
-    } else {
-        $updatedContent = $content
+# Get all .sql files in the specified input directory
+$files = Get-ChildItem -Path $inputDirectoryPath -Filter "*.sql"
+
+foreach ($file in $files) {
+    # Read the content of the file
+    $content = Get-Content -Path $file.FullName
+
+    # Find the first occurrence of "CREATE" and replace it with "CREATE OR ALTER"
+    $updatedContent = $content -join "`n"  # Join lines back into a single string for processing
+    $firstCreateIndex = $updatedContent.IndexOf("CREATE")
+
+    if ($firstCreateIndex -ne -1) {
+        # Replace only the first occurrence
+        $updatedContent = $updatedContent.Substring(0, $firstCreateIndex) + 
+                         "CREATE OR ALTER" + 
+                         $updatedContent.Substring($firstCreateIndex + "CREATE".Length)
     }
 
-    # Define the output path for the modified file
-    $outputFilePath = Join-Path -Path $outputDirectoryPath -ChildPath $fileName
+    # Define the output file path
+    $outputFilePath = Join-Path -Path $outputDirectoryPath -ChildPath $file.Name
 
-    # Write the updated content to the new location
+    # Write the updated content to the new file in the output directory
     Set-Content -Path $outputFilePath -Value $updatedContent
-
-    Write-Output "Updated file saved to: $outputFilePath"
 }
+
+Write-Host "Replacement completed and files saved to $outputDirectoryPath."
