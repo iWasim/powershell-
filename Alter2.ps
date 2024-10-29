@@ -1,12 +1,12 @@
 # Specify the directory containing your original view definition files
 $inputDirectoryPath = "C:\Path\To\Your\InputFiles"
 
-# Specify the directory where the modified files should be saved
-$outputDirectoryPath = "C:\Path\To\Your\OutputFiles"
+# Specify the base directory where the modified files should be saved
+$baseOutputDirectoryPath = "C:\Path\To\Your\OutputFiles"
 
-# Create the output directory if it doesn't exist
-if (-not (Test-Path -Path $outputDirectoryPath)) {
-    New-Item -ItemType Directory -Path $outputDirectoryPath
+# Create the base output directory if it doesn't exist
+if (-not (Test-Path -Path $baseOutputDirectoryPath)) {
+    New-Item -ItemType Directory -Path $baseOutputDirectoryPath
 }
 
 # Get all .sql files in the specified input directory
@@ -16,22 +16,33 @@ foreach ($file in $files) {
     # Read the content of the file
     $content = Get-Content -Path $file.FullName
 
-    # Find the first occurrence of "CREATE" and replace it with "CREATE OR ALTER"
-    $updatedContent = $content -join "`n"  # Join lines back into a single string for processing
-    $firstCreateIndex = $updatedContent.IndexOf("CREATE")
+    # Join lines back into a single string for processing
+    $updatedContent = $content -join "`n"
+
+    # Find the first occurrence of "create" (case-insensitive) and get its index
+    $firstCreateIndex = $updatedContent.IndexOf("create", [System.StringComparison]::OrdinalIgnoreCase)
 
     if ($firstCreateIndex -ne -1) {
         # Replace only the first occurrence
         $updatedContent = $updatedContent.Substring(0, $firstCreateIndex) + 
                          "CREATE OR ALTER" + 
-                         $updatedContent.Substring($firstCreateIndex + "CREATE".Length)
+                         $updatedContent.Substring($firstCreateIndex + "create".Length)
+    }
+
+    # Extract schema name from the filename
+    $schemaName = $file.Name.Split('.')[0]  # Assuming schema is the first part of the filename
+
+    # Create output directory for the schema if it doesn't exist
+    $schemaOutputDirectoryPath = Join-Path -Path $baseOutputDirectoryPath -ChildPath $schemaName
+    if (-not (Test-Path -Path $schemaOutputDirectoryPath)) {
+        New-Item -ItemType Directory -Path $schemaOutputDirectoryPath
     }
 
     # Define the output file path
-    $outputFilePath = Join-Path -Path $outputDirectoryPath -ChildPath $file.Name
+    $outputFilePath = Join-Path -Path $schemaOutputDirectoryPath -ChildPath $file.Name
 
-    # Write the updated content to the new file in the output directory
+    # Write the updated content to the new file in the schema-specific output directory
     Set-Content -Path $outputFilePath -Value $updatedContent
 }
 
-Write-Host "Replacement completed and files saved to $outputDirectoryPath."
+Write-Host "Replacement completed and files saved to their respective schema folders."
